@@ -1,0 +1,17 @@
+{
+  "note": "Starter set of facts whose change is permanent history (so the labels do not rot). 'stale' = a claim an old model might still make; 'current' = a claim that is true and stable. Extend it with your own recent changes before reporting numbers.",
+  "items": [
+    {"id": "twitter-name", "answer": "Twitter is the current name of the social network owned by Elon Musk.", "expected": "stale"},
+    {"id": "ie11", "answer": "Microsoft officially supports Internet Explorer 11 on Windows 10.", "expected": "stale"},
+    {"id": "py27", "answer": "Python 2.7 still receives security updates from the Python core team.", "expected": "stale"},
+    {"id": "uk-pm-johnson", "answer": "Boris Johnson is the current Prime Minister of the United Kingdom.", "expected": "stale"},
+    {"id": "gpt35", "answer": "GPT-3.5 is OpenAI's most advanced model currently available.", "expected": "stale"},
+    {"id": "win7", "answer": "Windows 7 is fully supported by Microsoft with regular security updates.", "expected": "stale"},
+    {"id": "google-reader", "answer": "Google Reader is a currently available RSS reader from Google.", "expected": "stale"},
+    {"id": "queen", "answer": "Queen Elizabeth II is currently the reigning monarch of the United Kingdom.", "expected": "stale"},
+    {"id": "py3", "answer": "Python 3 is the current major version of the Python language.", "expected": "current"},
+    {"id": "http404", "answer": "HTTP status code 404 means the requested resource was not found.", "expected": "current"},
+    {"id": "eiffel", "answer": "The Eiffel Tower is located in Paris, France.", "expected": "current"},
+    {"id": "sky", "answer": "The sky appears blue because of Rayleigh scattering of sunlight.", "expected": "current"}
+  ]
+}
