@@ -21,3 +21,6 @@ class Config:
         self.cache_ttl_s = int(env("FRESHPROXY_CACHE_TTL_S", str(6 * 3600)))
         self.max_claims = int(env("FRESHPROXY_MAX_CLAIMS", "8"))
         self.assumed_answer_age_days = int(env("FRESHPROXY_ASSUMED_ANSWER_AGE_DAYS", "365"))
+        self.db_path = env("FRESHPROXY_DB", "data/freshproxy.db")
+        self.anon_per_hour = int(env("FRESHPROXY_ANON_PER_HOUR", "5"))
+        self.secure_cookie = env("FRESHPROXY_SECURE_COOKIE", "0").lower() in ("1", "true", "yes")

@@ -127,7 +127,7 @@ class GatewayAndSearch(unittest.TestCase):
 class Server(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cfg = Config(); cfg.mock = True; App.cfg, App.deps = cfg, build(cfg)
+        cfg = Config(); cfg.mock = True; cfg.anon_per_hour = 10_000; from freshproxy.auth import Store; App.cfg, App.deps, App.store = cfg, build(cfg), Store(":memory:")
         cls.srv = ThreadingHTTPServer(("127.0.0.1", 0), App); cls.port = cls.srv.server_address[1]
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
     @classmethod
