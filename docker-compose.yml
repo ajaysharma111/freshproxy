@@ -1,14 +1,18 @@
-# Check https://github.com/maximhq/bifrost for the current image name, port and provider-key setup.
+# Configure the Gemini provider in Bifrost's Model Providers page.
+# Set its key value to env.GEMINI_API_KEY, then allow the Gemini models you use.
 services:
   bifrost:
     image: maximhq/bifrost
     ports: ["8080:8080"]
     volumes: ["./bifrost-data:/app/data"]
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
   freshproxy:
     build: .
     ports: ["8787:8787"]
     environment:
       BIFROST_URL: http://bifrost:8080
+      BIFROST_MODELS: ${BIFROST_MODELS:-gemini/gemini-2.5-flash}
+      BIFROST_API_KEY: ${BIFROST_API_KEY:-}
       TAVILY_API_KEY: ${TAVILY_API_KEY}
-      BIFROST_MODELS: ${BIFROST_MODELS:-openai/gpt-4o-mini}
     depends_on: [bifrost]
