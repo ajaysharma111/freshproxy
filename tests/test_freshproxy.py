@@ -53,10 +53,10 @@ class Pipeline(unittest.TestCase):
         self.assertGreater(r["stats"]["bifrost"]["calls"], 0); self.assertGreater(r["stats"]["tavily"]["searches"], 0)
     def test_verdict_without_valid_source_is_discarded(self):
         class Liar(MockGateway):
-            def chat_json(self, messages, max_tokens=900):
+            def chat_json(self, messages, max_tokens=900, task=""):
                 if messages[0]["content"].startswith("TASK:JUDGE"):
                     return {"verdict": "outdated", "confidence": 1, "current_value": "x", "reason": "trust me", "evidence": [99]}
-                return super().chat_json(messages, max_tokens)
+                return super().chat_json(messages, max_tokens, task)
         r = pipeline.verify("AcmeCloud's Pro plan costs $20 per month.", Deps(Liar(), MockSearch()), self.cfg, TODAY)
         self.assertEqual(r["claims"][0]["verdict"], "unclear"); self.assertFalse(r["had_corrections"])
     def test_search_failure_is_reported_not_hidden(self):
@@ -64,6 +64,34 @@ class Pipeline(unittest.TestCase):
             def search(self, *a, **k): raise RuntimeError("quota")
         r = pipeline.verify("AcmeCloud's Pro plan costs $20 per month.", Deps(MockGateway(), Broken()), self.cfg, TODAY)
         self.assertEqual(r["claims"][0]["label"], "unverified"); self.assertIn("quota", r["claims"][0]["reason"])
+
+
+class NewFeatures(unittest.TestCase):
+    def setUp(self):
+        self.cfg = Config(); self.cfg.mock = True
+    def test_progress_events_and_extras(self):
+        ev = []
+        r = pipeline.verify(SAMPLE, Deps(MockGateway(), MockSearch()), self.cfg, TODAY, emit=lambda e, d: ev.append(e))
+        self.assertEqual(ev[0], "step"); self.assertIn("claims", ev); self.assertEqual(ev.count("claim"), len(r["claims"]))
+        c = [x for x in r["claims"] if x["category"] == "pricing"][0]
+        self.assertEqual(c["recheck_by"], "2027-01-15"); self.assertEqual(c["consensus"]["contradicts"], 1)
+        self.assertEqual(r["original_answer"], SAMPLE)
+    def test_conflicting_sources_lower_confidence(self):
+        class Mixed(MockGateway):
+            def chat_json(self, messages, max_tokens=900, task=""):
+                if messages[0]["content"].startswith("TASK:JUDGE"):
+                    return {"verdict": "outdated", "confidence": 0.9, "current_value": "x", "reason": "r", "evidence": [1], "stances": {"1": "contradicts", "2": "supports"}}
+                return super().chat_json(messages, max_tokens, task)
+        class Two(MockSearch):
+            def search(self, *a, **k):
+                r = MockSearch.search(self, *a, **k); return r + r
+        r = pipeline.verify("AcmeCloud's Pro plan costs $20 per month.", Deps(Mixed(), Two()), self.cfg, TODAY)
+        c = r["claims"][0]; self.assertTrue(c["conflict"]); self.assertLess(c["confidence"], 0.9)
+    def test_official_source_flag(self):
+        self.assertTrue(pipeline.authority("https://docs.vendor.com/x")); self.assertTrue(pipeline.authority("https://www.irs.gov/a")); self.assertFalse(pipeline.authority("https://random-blog.com/p"))
+    def test_gateway_trace_records_tasks(self):
+        r = pipeline.verify(SAMPLE, Deps(MockGateway(), MockSearch()), self.cfg, TODAY)
+        self.assertEqual({t["task"] for t in r["stats"]["bifrost"]["trace"]}, {"extract", "judge", "rewrite"})
 
 
 class GatewayAndSearch(unittest.TestCase):
@@ -111,6 +139,10 @@ class Server(unittest.TestCase):
         r = json.loads(self.post("/api/verify", {"answer": SAMPLE}).read()); self.assertEqual(len(r["claims"]), 3)
         self.assertIn(b"FreshProxy", urllib.request.urlopen("http://127.0.0.1:%d/" % self.port).read())
         h = json.loads(urllib.request.urlopen("http://127.0.0.1:%d/api/health" % self.port).read()); self.assertTrue(h["mock"])
+    def test_stream_endpoint_emits_progress_then_done(self):
+        resp = self.post("/api/verify-stream", {"answer": SAMPLE}); lines = [json.loads(l) for l in resp.read().decode().splitlines() if l.strip()]
+        evs = [l["event"] for l in lines]; self.assertEqual(evs[0], "step"); self.assertEqual(evs[-1], "done"); self.assertIn("claim", evs)
+        self.assertEqual(len(lines[-1]["data"]["claims"]), 3)
     def test_empty_input_rejected(self):
         with self.assertRaises(urllib.error.HTTPError) as cm: self.post("/api/verify", {"answer": " "})
         self.assertEqual(cm.exception.code, 400)

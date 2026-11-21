@@ -59,6 +59,8 @@ class App(BaseHTTPRequestHandler):
                 if not ans:
                     return self.send(400, {"error": "Provide an 'answer' to verify."})
                 return self.send(200, verify(ans, self.deps, self.cfg))
+            if p == "/api/verify-stream":
+                return self.stream_verify(str(data.get("answer") or "").strip())
             if p == "/api/ask":
                 q = str(data.get("question") or "").strip()
                 if not q:
@@ -72,6 +74,27 @@ class App(BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001
             return self.send(502, {"error": str(e)[:300]})
         return self.send(404, {"error": "not found"})
+
+    def stream_verify(self, ans):
+        """Newline-delimited JSON events so the UI can show progress live."""
+        if not ans:
+            return self.send(400, {"error": "Provide an 'answer' to verify."})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        lock = threading.Lock()
+
+        def emit(ev, data):
+            with lock:
+                self.wfile.write((json.dumps({"event": ev, "data": data}) + "\n").encode())
+                self.wfile.flush()
+        try:
+            emit("done", verify(ans, self.deps, self.cfg, emit=emit))
+        except Exception as e:  # noqa: BLE001
+            emit("error", {"error": str(e)[:300]})
 
     def proxy(self, data):
         """Drop-in for any OpenAI-compatible client: forward to Bifrost, then attach a freshness report."""

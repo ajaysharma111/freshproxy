@@ -47,7 +47,7 @@ def extract_claims(answer, gateway, limit=8, today=None):
     """Return (claims, method). Falls back to rules when the gateway cannot be reached."""
     try:
         data = gateway.chat_json([{"role": "system", "content": EXTRACT_SYSTEM % limit},
-                                  {"role": "user", "content": answer[:6000]}])
+                                  {"role": "user", "content": answer[:6000]}], task="extract")
         claims = []
         for c in (data.get("claims") or [])[:limit]:
             text = str(c.get("text") or "").strip()

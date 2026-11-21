@@ -10,7 +10,7 @@ from . import http
 class Gateway:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.stats = {"calls": 0, "errors": 0, "fallbacks_used": 0, "prompt_tokens": 0, "completion_tokens": 0, "models_used": {}}
+        self.stats = {"calls": 0, "errors": 0, "fallbacks_used": 0, "prompt_tokens": 0, "completion_tokens": 0, "models_used": {}, "trace": []}
         self._lock = threading.Lock()
 
     def _bump(self, **kw):
@@ -18,7 +18,7 @@ class Gateway:
             for k, v in kw.items():
                 self.stats[k] += v
 
-    def chat(self, messages, json_mode=False, max_tokens=900):
+    def chat(self, messages, json_mode=False, max_tokens=900, task=""):
         headers = {"Authorization": "Bearer " + self.cfg.bifrost_key} if self.cfg.bifrost_key else {}
         last = None
         for i, model in enumerate(self.cfg.models):
@@ -26,6 +26,7 @@ class Gateway:
             if json_mode:
                 body["response_format"] = {"type": "json_object"}
             self._bump(calls=1)
+            t0 = time.time()
             try:
                 r = http.post_json(self.cfg.bifrost_url + "/v1/chat/completions", body, headers, timeout=60)
                 text = r["choices"][0]["message"]["content"] or ""
@@ -37,14 +38,17 @@ class Gateway:
                     self.stats["models_used"][used] = self.stats["models_used"].get(used, 0) + 1
                     if i:
                         self.stats["fallbacks_used"] += 1
+                    self.stats["trace"].append({"task": task, "model": used, "ms": int((time.time() - t0) * 1000), "tokens": int(u.get("prompt_tokens") or 0) + int(u.get("completion_tokens") or 0), "ok": True, "fallback": bool(i)})
                 return text
             except Exception as e:  # noqa: BLE001
                 last = e
                 self._bump(errors=1)
+                with self._lock:
+                    self.stats["trace"].append({"task": task, "model": model, "ms": int((time.time() - t0) * 1000), "tokens": 0, "ok": False, "fallback": bool(i)})
         raise RuntimeError("Bifrost request failed for every configured model: %s" % last)
 
-    def chat_json(self, messages, max_tokens=900):
-        return parse_json(self.chat(messages, json_mode=True, max_tokens=max_tokens))
+    def chat_json(self, messages, max_tokens=900, task=""):
+        return parse_json(self.chat(messages, json_mode=True, max_tokens=max_tokens, task=task))
 
     def snapshot(self):
         with self._lock:

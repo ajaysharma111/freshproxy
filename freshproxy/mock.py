@@ -32,24 +32,25 @@ class MockSearch:
 
 class MockGateway:
     def __init__(self):
-        self.stats = {"calls": 0, "errors": 0, "fallbacks_used": 0, "prompt_tokens": 0, "completion_tokens": 0, "models_used": {"mock/model": 0}}
+        self.stats = {"calls": 0, "errors": 0, "fallbacks_used": 0, "prompt_tokens": 0, "completion_tokens": 0, "models_used": {"mock/model": 0}, "trace": []}
         self._l = threading.Lock()
 
-    def _tick(self):
+    def _tick(self, task=""):
         with self._l:
             self.stats["calls"] += 1
             self.stats["models_used"]["mock/model"] += 1
+            self.stats["trace"].append({"task": task, "model": "mock/model", "ms": 1, "tokens": 0, "ok": True, "fallback": False})
 
-    def chat(self, messages, json_mode=False, max_tokens=900):
-        self._tick()
+    def chat(self, messages, json_mode=False, max_tokens=900, task=""):
+        self._tick(task)
         sysm, user = messages[0]["content"], messages[-1]["content"]
         if sysm.startswith("TASK:REWRITE"):
             ans = user.split("Corrections:")[0].replace("Answer:\n", "").strip()
             return ans.replace("$20 per month", "$29 per month [1]").replace("version v2", "version v3 [2]")
         return "(mock) This is a canned answer. " + SAMPLE
 
-    def chat_json(self, messages, max_tokens=900):
-        self._tick()
+    def chat_json(self, messages, max_tokens=900, task=""):
+        self._tick(task)
         sysm, user = messages[0]["content"], messages[-1]["content"]
         if sysm.startswith("TASK:EXTRACT"):
             claims = []
@@ -66,8 +67,8 @@ class MockGateway:
             text = user.split("Results:")[1]
             nums = [int(n) for n, _, _ in res]
             if re.search(r"no longer|deprecated|previously", text) and not re.search(r"Dana Rao", claim):
-                return {"verdict": "outdated", "confidence": 0.9, "current_value": re.search(r"(costs \$\d+ per month|v3 is the current)", text).group(1) if re.search(r"(costs \$\d+ per month|v3 is the current)", text) else "", "reason": "Sources show it changed.", "evidence": nums[:1]}
-            return {"verdict": "supported", "confidence": 0.85, "current_value": "", "reason": "Sources confirm it.", "evidence": nums[:1]}
+                return {"verdict": "outdated", "confidence": 0.9, "current_value": re.search(r"(costs \$\d+ per month|v3 is the current)", text).group(1) if re.search(r"(costs \$\d+ per month|v3 is the current)", text) else "", "reason": "Sources show it changed.", "evidence": nums[:1], "stances": {str(n): "contradicts" for n in nums}}
+            return {"verdict": "supported", "confidence": 0.85, "current_value": "", "reason": "Sources confirm it.", "evidence": nums[:1], "stances": {str(n): "supports" for n in nums}}
         return {}
 
     def snapshot(self):

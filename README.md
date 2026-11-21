@@ -24,6 +24,16 @@ It uses both mandatory technologies, each for a distinct job:
 live sources say and how recent they are. **Reliability rules:** a verdict that cites no real search result is discarded;
 "no evidence" is labelled *unverified*, never *changed*; search or gateway failures are shown in the report, not hidden.
 
+## What makes it more than a fact-checker
+- **Live progress stream:** claims appear and resolve one by one (`/api/verify-stream`, newline-delimited JSON).
+- **Your answer, highlighted:** each claim is marked green/amber/red in the original text; click one to jump to its evidence.
+- **Evidence consensus and conflict detection:** every source gets a stance (supports / contradicts / neutral). Mixed evidence is shown as *sources conflict* and lowers confidence instead of being hidden. Official and documentation domains are tagged.
+- **Shelf life:** each claim shows how long that kind of fact usually stays valid and a **re-check by** date.
+- **Changes marked:** the corrected answer is shown as a word-level diff against the original, with `[n]` citations.
+- **Gateway trace:** a table of every model call (task, model, latency, tokens, fallback or failure), showing Bifrost's role.
+- **Exportable reports:** Markdown and JSON downloads.
+- **Drop-in proxy:** point any OpenAI-compatible client at `/v1/chat/completions` to get a freshness report on every answer.
+
 ## Quick start (demo, no keys)
 ```bash
 FRESHPROXY_MOCK=1 python3 -m freshproxy      # http://127.0.0.1:8787, click "Load demo sample"
@@ -45,6 +55,7 @@ Docker: `docker compose up` starts FreshProxy and Bifrost together (`docker-comp
 
 ## API
 - `POST /api/verify` `{"answer": "..."}` -> claims, scores, sources, corrected answer, Tavily/Bifrost usage.
+- `POST /api/verify-stream` -> same, as live progress events ending in a `done` event.
 - `POST /api/ask` `{"question": "..."}` -> asks the model through Bifrost, then verifies its answer.
 - `POST /v1/chat/completions` -> **OpenAI-compatible verifying proxy.** Point any OpenAI SDK at FreshProxy; the normal
   response comes back with an extra `freshproxy` field and an `X-FreshProxy-Score` header. (`stream:true` is not supported yet.)
@@ -56,7 +67,7 @@ Docker: `docker compose up` starts FreshProxy and Bifrost together (`docker-comp
 
 ## Tests and benchmark
 ```bash
-python3 -m unittest discover -s tests -t .      # 17 tests, no network needed
+python3 -m unittest discover -s tests -t .      # 22 tests, no network needed
 python3 benchmark/run.py                         # live: accuracy / precision / recall on benchmark/dataset.json
 ```
 The starter dataset has 12 items whose staleness is permanent history. **No accuracy figure is claimed here**; run it with
@@ -70,3 +81,10 @@ your keys and extend the dataset with recent changes before quoting numbers.
   unit tests with fakes.
 
 MIT licence. See `LICENSE`.
+
+## 3-minute demo script
+1. Run live (`TAVILY_API_KEY` set, Bifrost up). Paste a real answer from any chatbot that mentions prices, versions or a job title.
+2. Watch the progress stream, then click a red highlight to jump to its dated sources.
+3. Show the *conflict* case (mixed sources), the diff of the corrected answer, and the gateway trace.
+4. Stop one provider key in Bifrost (or list a bad first model in `BIFROST_MODELS`) and re-run: the trace shows the fallback and the check still completes.
+5. Point an OpenAI SDK at `http://localhost:8787/v1` and show the `freshproxy` field on a normal chat response.
