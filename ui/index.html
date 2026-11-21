@@ -1,35 +1,136 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FreshProxy</title>
+<title>FreshProxy — is your AI answer still true?</title>
+<meta name="description" content="FreshProxy re-checks AI answers against the live web (Tavily), judges them through the Bifrost gateway and scores every claim for freshness.">
 <style>
-:root{--bg:#0f1720;--card:#16212d;--line:#263548;--tx:#e8eef5;--mu:#93a4b8;--ok:#2fbf8a;--warn:#e9b44c;--bad:#ef6a63;--ac:#5aa9ff}
-@media(prefers-color-scheme:light){:root{--bg:#f4f7fb;--card:#fff;--line:#dbe3ec;--tx:#14202e;--mu:#5d6f84}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,sans-serif}
-main{max-width:960px;margin:0 auto;padding:20px 16px 70px}h1{font-size:22px;margin:0}h1 span.a{color:var(--ac)}
-.sub{color:var(--mu);margin:4px 0 16px}.badge{display:inline-block;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;border:1px solid var(--line)}
-.mock{background:var(--warn);color:#222;border-color:transparent}
-textarea,input{width:100%;background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
-textarea{min-height:120px;resize:vertical}button{background:var(--ac);color:#06121f;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
-button.sec{background:transparent;color:var(--tx);border:1px solid var(--line)}button:disabled{opacity:.5}.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
-.score{font-size:36px;font-weight:800;line-height:1}.c-current{color:var(--ok)}.c-unverified{color:var(--warn)}.c-changed{color:var(--bad)}.c-conflict{color:var(--warn)}
-.claim h3{margin:0 0 4px;font-size:15px}.meta{color:var(--mu);font-size:13px}a{color:var(--ac)}pre{white-space:pre-wrap;margin:0;font:inherit}
-.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:640px){.grid{grid-template-columns:1fr}}
-mark{border-radius:4px;padding:1px 3px;cursor:pointer;color:inherit}mark.current{background:#2fbf8a44}mark.changed{background:#ef6a6366}mark.unverified{background:#e9b44c55}
-del{background:#ef6a6344;text-decoration:line-through}ins{background:#2fbf8a44;text-decoration:none}
-.steps div{padding:3px 0;color:var(--mu)}.steps div.done{color:var(--tx)}.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--ac);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;margin-right:6px}@keyframes s{to{transform:rotate(360deg)}}
-.pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;border:1px solid var(--line);margin-right:4px}
-table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+:root{--bg:#0a0f18;--bg2:#0e1521;--card:#121b29;--line:#223046;--tx:#e9eff7;--mu:#8fa2b9;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--ac:#60a5fa;--ac2:#a78bfa;--glow:rgba(96,165,250,.18)}
+:root[data-theme=light]{--bg:#f3f6fb;--bg2:#e9eff7;--card:#fff;--line:#d8e1ec;--tx:#0f1b2b;--mu:#58697e;--ok:#059669;--warn:#b45309;--bad:#dc2626;--ac:#2563eb;--ac2:#7c3aed;--glow:rgba(37,99,235,.10)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(900px 500px at 15% -10%,var(--glow),transparent),radial-gradient(700px 420px at 95% 0,rgba(167,139,250,.12),transparent),var(--bg);background-attachment:fixed;color:var(--tx);font:15px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--ac)}button{font:inherit}
+.wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:6px;height:58px}
+.logo{font-weight:800;font-size:19px;letter-spacing:-.3px;display:flex;align-items:center;gap:8px;margin-right:14px;cursor:pointer}
+.logo i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;color:#fff;font-style:normal;font-size:15px}
+.logo b{color:var(--ac)}
+.tab{background:none;border:0;color:var(--mu);padding:8px 12px;border-radius:9px;cursor:pointer;font-weight:600}
+.tab:hover{color:var(--tx)}.tab.on{color:var(--tx);background:var(--bg2)}
+.sp{flex:1}
+.btn{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px -8px var(--ac);transition:transform .12s,opacity .12s}
+.btn:hover{transform:translateY(-1px)}.btn:disabled{opacity:.5;transform:none;cursor:wait}
+.btn.sec{background:transparent;color:var(--tx);border:1px solid var(--line);box-shadow:none}.btn.sm{padding:6px 12px;font-size:13px;border-radius:8px}
+.icon{background:none;border:1px solid var(--line);color:var(--tx);border-radius:9px;width:36px;height:36px;cursor:pointer}
+.badge{display:inline-block;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--mu)}.badge.mock{background:var(--warn);color:#1b1500;border-color:transparent}
+.hero{padding:54px 0 26px;text-align:center}
+.hero h1{font-size:clamp(30px,6vw,52px);line-height:1.08;margin:0 0 14px;letter-spacing:-1.2px}
+.grad{background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{max-width:640px;margin:0 auto 22px;color:var(--mu);font-size:17px}
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0}
+.steps3 .card{margin:0}.steps3 b{display:block;margin-bottom:4px}
+.n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);font-size:12px;font-weight:800;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 0 rgba(255,255,255,.02)}
+.card.pad{padding:20px}
+textarea,input{width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit;outline:none}
+textarea:focus,input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow)}
+textarea{min-height:140px;resize:vertical}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px;font-weight:600}
+.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;align-items:center}.row>input{flex:1;min-width:200px}
+.meta{color:var(--mu);font-size:13px}.err{color:var(--bad);font-size:14px;margin-top:8px}
+.score{font-size:44px;font-weight:800;line-height:1}.c-current{color:var(--ok)}.c-unverified{color:var(--warn)}.c-changed{color:var(--bad)}.c-conflict{color:var(--warn)}
+.gauge{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.ring{--v:0;width:112px;height:112px;border-radius:50%;background:conic-gradient(var(--rc) calc(var(--v)*1%),var(--line) 0);display:grid;place-items:center;flex:none}
+.ring span{width:88px;height:88px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:26px;font-weight:800}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.chip{border:1px solid var(--line);background:var(--bg2);color:var(--tx);border-radius:99px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer}.chip.on{border-color:var(--ac);color:var(--ac)}
+.claim h3{margin:0 0 4px;font-size:15px}.claim{border-left:4px solid var(--line)}
+.claim.l-current{border-left-color:var(--ok)}.claim.l-changed{border-left-color:var(--bad)}.claim.l-unverified,.claim.l-conflict{border-left-color:var(--warn)}
 .claim.flash{outline:2px solid var(--ac)}
-</style></head><body><main>
-<h1>Fresh<span class="a">Proxy</span> <span id="mode" class="badge"></span></h1>
-<p class="sub">Paste an AI answer. FreshProxy finds claims that may have gone stale, re-checks them on the live web (Tavily), judges them through the Bifrost gateway, and scores each one for freshness.</p>
-<textarea id="ans" placeholder="Paste an LLM answer here…"></textarea>
-<div class="row"><button id="go">Check freshness</button><button class="sec" id="sample" hidden>Load demo sample</button></div>
-<div class="row"><input id="q" placeholder="…or ask a question and verify the model's answer"><button class="sec" id="ask">Ask &amp; verify</button></div>
-<div id="out"></div></main>
+.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%}
+pre{white-space:pre-wrap;margin:0;font:inherit;word-break:break-word}code,.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.code{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;white-space:pre;position:relative}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+mark{border-radius:4px;padding:1px 3px;cursor:pointer;color:inherit}mark.current{background:#34d39944}mark.changed{background:#f8717166}mark.unverified{background:#fbbf2455}
+del{background:#f8717144;text-decoration:line-through}ins{background:#34d39944;text-decoration:none}
+.steps div{padding:3px 0;color:var(--mu)}.steps div.done{color:var(--tx)}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--ac);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;margin-right:8px}@keyframes s{to{transform:rotate(360deg)}}
+.pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;border:1px solid var(--line);margin-right:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stats .card{margin:0;text-align:center}.stats b{font-size:26px;display:block}
+.hrow{display:flex;gap:12px;align-items:center;cursor:pointer}.hrow:hover{border-color:var(--ac)}.hrow .s{font-weight:800;min-width:48px}
+.hrow .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal{position:fixed;inset:0;background:rgba(3,8,16,.6);backdrop-filter:blur(4px);display:none;place-items:center;z-index:50;padding:16px}.modal.on{display:grid}
+.modal .box{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
+.modal h2{margin:0 0 4px}.seg{display:flex;background:var(--bg2);border-radius:10px;padding:3px;margin:14px 0 4px}.seg button{flex:1;border:0;background:none;color:var(--mu);padding:8px;border-radius:8px;font-weight:700;cursor:pointer}.seg button.on{background:var(--card);color:var(--tx)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:60;display:none}
+.view{display:none}.view.on{display:block}
+footer{color:var(--mu);font-size:13px;text-align:center;padding:30px 0 50px}
+@media(max-width:700px){.steps3,.stats,.grid{grid-template-columns:1fr 1fr}.steps3{grid-template-columns:1fr}.tab{padding:8px 8px}.logo span{display:none}}
+</style></head><body>
+<nav><div class="wrap">
+ <div class="logo" id="home"><i>✓</i><span>Fresh<b>Proxy</b></span></div>
+ <button class="tab on" data-v="check">Check</button><button class="tab" data-v="history">History</button><button class="tab" data-v="api">Developers</button>
+ <div class="sp"></div><span id="mode" class="badge"></span>
+ <button class="icon" id="theme" title="Toggle theme">☀&#xFE0E;</button>
+ <span id="authbox"></span>
+</div></nav>
+
+<main class="wrap">
+<section class="view on" id="v-check">
+ <div class="hero" id="hero">
+  <span class="badge">Problem 06 · Stale-Answer Detector</span>
+  <h1 style="margin-top:14px">Is your AI answer <span class="grad">still true?</span></h1>
+  <p>LLMs answer from memory. FreshProxy re-checks every time-sensitive claim on the live web with <b>Tavily</b>, judges it through the <b>Bifrost</b> gateway, and hands back a corrected answer with sources.</p>
+  <div class="steps3" style="text-align:left">
+   <div class="card"><span class="n">1</span><b>Find perishable claims</b><span class="meta">Prices, versions, office-holders, laws, rankings — each gets a shelf life.</span></div>
+   <div class="card"><span class="n">2</span><b>Verify on the live web</b><span class="meta">Tavily search, parallel, cached. Verdicts without a valid source are discarded.</span></div>
+   <div class="card"><span class="n">3</span><b>Score &amp; correct</b><span class="meta">Per-claim freshness, conflicts flagged, corrected answer as a diff.</span></div>
+  </div>
+ </div>
+ <div class="card pad">
+  <label style="margin-top:0">Paste an AI answer</label>
+  <textarea id="ans" placeholder="Paste an LLM answer here…"></textarea>
+  <div class="row"><button class="btn" id="go">Check freshness</button><button class="btn sec" id="sample" hidden>Load demo sample</button><span class="meta" id="quota"></span></div>
+  <div class="row"><input id="q" placeholder="…or ask a question and verify the model's own answer"><button class="btn sec" id="ask">Ask &amp; verify</button></div>
+ </div>
+ <div id="out"></div>
+</section>
+
+<section class="view" id="v-history">
+ <h2 style="margin:26px 0 12px">Your checks</h2>
+ <div id="hist"></div>
+</section>
+
+<section class="view" id="v-api">
+ <h2 style="margin:26px 0 4px">Use FreshProxy as a drop-in proxy</h2>
+ <p class="meta">Point any OpenAI-compatible client at FreshProxy. It forwards to Bifrost, then attaches a <code>freshproxy</code> freshness report to every response.</p>
+ <div class="card pad"><b>Your API key</b>
+  <div id="keybox" class="meta" style="margin-top:6px"></div></div>
+ <div class="card pad"><b>curl</b><div class="code" id="curl"></div></div>
+ <div class="card pad"><b>Python (OpenAI SDK)</b><div class="code" id="py"></div></div>
+ <div class="card pad"><b>Endpoints</b><table>
+  <tr><td><code>POST /v1/chat/completions</code></td><td>OpenAI-compatible; adds <code>freshproxy</code> report + <code>X-FreshProxy-Score</code> header</td></tr>
+  <tr><td><code>POST /api/verify</code></td><td>Verify a pasted answer</td></tr>
+  <tr><td><code>POST /api/verify-stream</code></td><td>Same, streamed as NDJSON progress events</td></tr>
+  <tr><td><code>POST /api/ask</code></td><td>Ask a question and verify the answer</td></tr>
+  <tr><td><code>GET /api/history</code></td><td>Your saved reports (login or API key)</td></tr></table></div>
+</section>
+<footer>FreshProxy · Tavily for live evidence · Bifrost for model routing &amp; fallbacks · freshness is an estimate, verify important facts yourself.</footer>
+</main>
+
+<div class="modal" id="modal"><div class="box">
+ <h2 id="mt">Welcome back</h2><div class="meta">Save every check, get unlimited runs and an API key.</div>
+ <div class="seg"><button data-m="login" class="on">Log in</button><button data-m="signup">Sign up</button></div>
+ <form id="af" autocomplete="on">
+  <div id="namew" hidden><label>Name</label><input id="an" autocomplete="name" maxlength="60"></div>
+  <label>Email</label><input id="ae" type="email" autocomplete="email" required>
+  <label>Password <span class="meta" id="ph"></span></label><input id="ap" type="password" autocomplete="current-password" required minlength="8">
+  <div class="err" id="aerr"></div>
+  <div class="row"><button class="btn" id="asub" style="flex:1">Log in</button><button type="button" class="btn sec" id="acancel">Cancel</button></div>
+ </form></div></div>
+<div class="toast" id="toast"></div>
 <script>
+
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const col=l=>l==='current'?'var(--ok)':l==='changed'?'var(--bad)':'var(--warn)';
 let LAST=null;
@@ -46,7 +147,7 @@ function highlighted(r){let h=esc(r.original_answer||''),used=[];
     h=h.slice(0,k)+`<mark class="${c.conflict?'unverified':c.label}" data-i="${i}" title="${esc(c.label)}">`+h.slice(k,k+t.length)+'</mark>'+h.slice(k+t.length)});return h}
 
 function card(c,i){const l=c.conflict?'conflict':c.label,cs=c.consensus||{};
-  return `<div class="card claim" id="c${i}"><h3>${esc(c.text)}</h3>
+  return `<div class="card claim l-${l}" id="c${i}"><h3>${esc(c.text)}</h3>
    <div class="meta"><b class="c-${l}">${l==='conflict'?'SOURCES CONFLICT':c.label.toUpperCase()}</b> · ${Math.round(c.freshness*100)}% · ${esc(c.category)} · verdict: ${esc(c.verdict)}</div>
    <div class="bar"><i style="width:${c.freshness*100}%;background:${col(c.label)}"></i></div>
    <div>${esc(c.reason)}</div>${c.current_value?`<div><b>Now:</b> ${esc(c.current_value)}</div>`:''}
@@ -56,16 +157,18 @@ function card(c,i){const l=c.conflict?'conflict':c.label,cs=c.consensus||{};
 
 function show(r){LAST=r;const ov=r.overall,l=ov==null?'unverified':ov>=.7?'current':ov<=.3?'changed':'unverified',t=r.stats.tavily,b=r.stats.bifrost;
   const nch=r.claims.filter(c=>c.label==='changed').length,ncu=r.claims.filter(c=>c.label==='current').length;
-  $('out').innerHTML=`<div class="card"><div class="meta">Overall freshness</div><div class="score c-${l}">${ov==null?'—':Math.round(ov*100)+'%'}</div>
+  $('out').innerHTML=`<div class="card"><div class="gauge"><div class="ring" style="--v:${ov==null?0:Math.round(ov*100)};--rc:${col(l)}"><span>${ov==null?'—':Math.round(ov*100)+'%'}</span></div><div style="flex:1;min-width:220px"><div class="meta">Overall freshness</div>
    <div class="meta">${r.claims.length} claim(s) checked: ${nch} changed · ${ncu} current · ${r.claims.length-nch-ncu} unverified · found by ${r.extraction==='llm'?'the model':'built-in rules (gateway unavailable)'} · ${r.stats.elapsed_s}s</div>
-   <div class="row"><button class="sec" id="dlmd">Download report (.md)</button><button class="sec" id="dljson">Download JSON</button></div></div>
+   <div class="row"><button class="btn sec sm" id="dlmd">Download report (.md)</button><button class="btn sec sm" id="dljson">Download JSON</button></div></div></div></div>
    <div class="card"><div class="meta">Your answer, highlighted (click a highlight to jump to its evidence)</div><pre id="hl">${highlighted(r)}</pre></div>`+
-  (r.claims.length?'':'<div class="card">No time-sensitive claims were found in this answer.</div>')+r.claims.map(card).join('')+
+  (r.claims.length?'':'<div class="card">No time-sensitive claims were found in this answer.</div>')+(r.claims.length>1?'<div class="chips" id="flt">'+['all','changed','unverified','current'].map(f=>`<button class="chip${f==='all'?' on':''}" data-f="${f}">${f}</button>`).join('')+'</div>':'')+r.claims.map(card).join('')+
   (r.corrected_answer?`<div class="card"><div class="meta">Corrected answer (changes marked)</div><pre>${diff(r.original_answer||'',r.corrected_answer)}</pre></div>`:'')+
   `<div class="grid"><div class="card"><div class="meta">Tavily (live evidence)</div>${t.searches} searches · ${t.cache_hits} cached · ${t.errors} errors</div>
    <div class="card"><div class="meta">Bifrost (model gateway)</div>${b.calls} calls · ${b.prompt_tokens+b.completion_tokens} tokens · fallbacks used: ${b.fallbacks_used} · errors: ${b.errors}</div></div>
    <div class="card"><div class="meta">Gateway trace: every model call went through Bifrost</div><table><tr><th>Task</th><th>Model</th><th>Time</th><th>Tokens</th><th></th></tr>${(b.trace||[]).map(x=>`<tr><td>${esc(x.task||'-')}</td><td>${esc(x.model)}</td><td>${x.ms} ms</td><td>${x.tokens}</td><td>${x.ok?(x.fallback?'fallback':'ok'):'<span class="c-changed">failed</span>'}</td></tr>`).join('')}</table></div>
    <p class="meta">${esc(r.disclaimer)}</p>`;
+  document.querySelectorAll('#flt .chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('#flt .chip').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.claim').forEach((c,i)=>{const l=(r.claims[i].conflict?'unverified':r.claims[i].label);c.style.display=(b.dataset.f==='all'||b.dataset.f===l)?'':'none'})});
+  $('hero').hidden=true;
   document.querySelectorAll('#hl mark').forEach(m=>m.onclick=()=>{const c=$('c'+m.dataset.i);c.scrollIntoView({behavior:'smooth',block:'center'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600)});
   $('dljson').onclick=()=>save('freshproxy-report.json',JSON.stringify(r,null,2),'application/json');
   $('dlmd').onclick=()=>save('freshproxy-report.md',markdown(r),'text/markdown')}
@@ -86,9 +189,61 @@ async function runStream(answer){
       else if(m.event==='claim'){n++;steps.forEach(s=>s.done=true);steps.push({text:'Checked '+n+'/'+total+': '+m.data.claim.text.slice(0,70)+' → '+m.data.claim.label.toUpperCase(),done:true});draw()}
       else if(m.event==='done')final=m.data;else if(m.event==='error')throw new Error(m.data.error)}}
   if(!final)throw new Error('The connection closed before the report was complete.');return final}
-async function run(get){$('go').disabled=$('ask').disabled=true;try{show(await get())}catch(e){$('out').innerHTML='<div class="card" style="border-color:var(--bad)">'+esc(e.message)+'</div>'}$('go').disabled=$('ask').disabled=false}
-$('go').onclick=()=>run(()=>runStream($('ans').value.trim()));
-$('ask').onclick=()=>run(async()=>{$('out').innerHTML='<div class="card"><span class="spin"></span>Asking the model through Bifrost…</div>';const r=await post('/api/ask',{question:$('q').value});$('ans').value=r.original_answer;r.original_answer=r.original_answer;return r});
-fetch('/api/health').then(r=>r.json()).then(h=>{const m=$('mode');m.textContent=h.mock?'MOCK DEMO DATA':'live';if(h.mock)m.classList.add('mock');
+
+/* ---------------- app shell: accounts, tabs, history, API ---------------- */
+let ME=null,CFG={},KEY='fp_YOUR_KEY';
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2400)};
+const api=async(u,b)=>{const r=await fetch(u,b===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||r.status);e.signup=j.signup;throw e}return j};
+function view(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  if(v==='history')loadHist();if(v==='api')drawApi();window.scrollTo(0,0)}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>view(t.dataset.v));$('home').onclick=()=>view('check');
+$('theme').onclick=()=>{const d=document.documentElement,n=d.dataset.theme==='light'?'dark':'light';d.dataset.theme=n;try{localStorage.setItem('fp_theme',n)}catch(e){}};
+try{const t=localStorage.getItem('fp_theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+
+function drawAuth(){
+  $('authbox').innerHTML=ME?`<span class="meta" style="margin:0 6px">${esc(ME.name)}</span><button class="btn sec sm" id="lo">Log out</button>`:`<button class="btn sec sm" id="li">Log in</button> <button class="btn sm" id="su">Sign up</button>`;
+  if(ME)$('lo').onclick=async()=>{await api('/api/logout',{});ME=null;KEY='fp_YOUR_KEY';drawAuth();drawQuota();view('check');toast('Logged out')};
+  else{$('li').onclick=()=>openModal('login');$('su').onclick=()=>openModal('signup')}}
+function drawQuota(){$('quota').textContent=ME?'Signed in · unlimited checks, saved to History':'Guest: '+(CFG.anon_per_hour||5)+' free checks/hour — sign up for unlimited'}
+async function refreshMe(){try{const j=await api('/api/me');ME=j.user;CFG.anon_per_hour=j.anon_per_hour}catch(e){ME=null}drawAuth();drawQuota()}
+
+let MODE='login';
+function setMode(m){MODE=m;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('namew').hidden=m!=='signup';
+  $('mt').textContent=m==='login'?'Welcome back':'Create your account';$('asub').textContent=m==='login'?'Log in':'Create account';$('ph').textContent=m==='signup'?'(8+ characters)':'';
+  $('ap').autocomplete=m==='login'?'current-password':'new-password';$('aerr').textContent=''}
+function openModal(m){setMode(m||'login');$('modal').classList.add('on');setTimeout(()=>$('ae').focus(),50)}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('acancel').onclick=()=>$('modal').classList.remove('on');$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('on')};
+$('af').onsubmit=async e=>{e.preventDefault();$('asub').disabled=true;$('aerr').textContent='';
+  try{const j=await api(MODE==='login'?'/api/login':'/api/signup',{email:$('ae').value,password:$('ap').value,name:$('an').value});ME=j.user;$('modal').classList.remove('on');$('ap').value='';drawAuth();drawQuota();toast(MODE==='login'?'Logged in':'Account created — checks are now saved');}
+  catch(x){$('aerr').textContent=x.message}$('asub').disabled=false};
+
+const ago=t=>{const s=Date.now()/1000-t;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' d ago'};
+async function loadHist(){const h=$('hist');
+  if(!ME){h.innerHTML='<div class="card pad">Log in to keep a history of every check, re-open reports and track how stale your AI answers are.<div class="row"><button class="btn" id="hl1">Log in / Sign up</button></div></div>';$('hl1').onclick=()=>openModal('signup');return}
+  const [m,j]=await Promise.all([api('/api/me'),api('/api/history')]),s=m.stats,pc=v=>v==null?'—':Math.round(v*100)+'%';
+  h.innerHTML=`<div class="stats"><div class="card"><b>${s.checks}</b><span class="meta">checks</span></div><div class="card"><b>${pc(s.avg_freshness)}</b><span class="meta">avg freshness</span></div><div class="card"><b>${s.claims}</b><span class="meta">claims verified</span></div><div class="card"><b class="c-changed">${s.stale_found}</b><span class="meta">stale claims caught</span></div></div>`+
+   (j.items.length?j.items.map(x=>{const l=x.overall==null?'unverified':x.overall>=.7?'current':x.overall<=.3?'changed':'unverified';
+    return `<div class="card hrow" data-id="${x.id}"><div class="s c-${l}">${pc(x.overall)}</div><div class="t">${esc(x.preview||'(empty)')}<div class="meta">${x.n_claims} claims · ${x.n_changed} changed · ${x.source} · ${ago(x.created)}</div></div><button class="btn sec sm" data-del="${x.id}">Delete</button></div>`}).join(''):'<div class="card">No checks yet — run one from the Check tab.</div>');
+  h.querySelectorAll('.hrow').forEach(r=>r.onclick=async e=>{const d=e.target.dataset.del;
+    if(d){await api('/api/history/delete',{id:+d});loadHist();return}
+    const rep=await api('/api/history/'+r.dataset.id);view('check');show(rep);$('ans').value=rep.original_answer||''})}
+
+function drawApi(){const o=location.origin;
+  $('curl').textContent=`curl ${o}/v1/chat/completions \\\n  -H "Authorization: Bearer ${KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"openai/gpt-4o-mini","messages":[{"role":"user","content":"Who is the CEO of Acme?"}]}'`;
+  $('py').textContent=`from openai import OpenAI\nc = OpenAI(base_url="${o}/v1", api_key="${KEY}")\nr = c.chat.completions.create(model="openai/gpt-4o-mini",\n      messages=[{"role":"user","content":"Latest stable Python version?"}])\nprint(r.choices[0].message.content)\nprint(r.model_extra["freshproxy"]["overall"])   # freshness score 0..1`;
+  const k=$('keybox');
+  if(!ME){k.innerHTML='Log in to create an API key. <button class="btn sm" id="kl">Log in</button>';$('kl').onclick=()=>openModal('login');return}
+  k.innerHTML=(ME.key_hint?'Current key: <code>'+esc(ME.key_hint)+'</code> (shown in full only once)':'No key yet.')+' <button class="btn sm" id="kg">'+(ME.key_hint?'Rotate key':'Generate key')+'</button><div id="knew"></div>';
+  $('kg').onclick=async()=>{const j=await api('/api/key',{});KEY=j.api_key;await refreshMe();drawApi();$('knew').innerHTML='<div class="code" style="margin-top:8px">'+esc(KEY)+'</div><div class="meta">Copy it now — only a hash is stored.</div>'}}
+
+/* run wiring */
+async function run(get){$('go').disabled=$('ask').disabled=true;$('hero').hidden=true;
+  try{show(await get());if(ME)toast('Saved to History')}catch(e){$('out').innerHTML='<div class="card" style="border-color:var(--bad)">'+esc(e.message)+(e.signup?'<div class="row"><button class="btn" id="e1">Sign up free</button></div>':'')+'</div>';if(e.signup)$('e1').onclick=()=>openModal('signup')}
+  $('go').disabled=$('ask').disabled=false}
+$('go').onclick=()=>{const a=$('ans').value.trim();if(!a){toast('Paste an answer first');return}run(()=>runStream(a))};
+$('ask').onclick=()=>{if(!$('q').value.trim()){toast('Type a question first');return}run(async()=>{$('out').innerHTML='<div class="card"><span class="spin"></span>Asking the model through Bifrost…</div>';const r=await post('/api/ask',{question:$('q').value});$('ans').value=r.original_answer;return r})};
+fetch('/api/health').then(r=>r.json()).then(h=>{const m=$('mode');m.textContent=h.mock?'DEMO DATA':'live';if(h.mock)m.classList.add('mock');
   if(h.sample){$('sample').hidden=false;$('sample').onclick=()=>$('ans').value=h.sample}else if(!h.tavily_configured){m.textContent='live · TAVILY_API_KEY missing'}});
+refreshMe();
 </script></body></html>

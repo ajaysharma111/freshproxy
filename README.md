@@ -88,3 +88,13 @@ MIT licence. See `LICENSE`.
 3. Show the *conflict* case (mixed sources), the diff of the corrected answer, and the gateway trace.
 4. Stop one provider key in Bifrost (or list a bad first model in `BIFROST_MODELS`) and re-run: the trace shows the fallback and the check still completes.
 5. Point an OpenAI SDK at `http://localhost:8787/v1` and show the `freshproxy` field on a normal chat response.
+
+
+## Accounts, history & API keys (v0.3)
+
+- **Sign up / log in** (scrypt-hashed passwords, HttpOnly SameSite session cookies, JSON-only POSTs + Origin check, login rate limiting). Storage is SQLite via the stdlib (`FRESHPROXY_DB`, default `data/freshproxy.db`).
+- **History**: every check by a signed-in user is saved; re-open, export or delete reports; per-user stats (checks, avg freshness, stale claims caught).
+- **Per-user API key** (`fp_...`, only a hash is stored): use it as the Bearer token on `/v1/chat/completions` to get the OpenAI-compatible freshness proxy; those calls also appear in History.
+- **Guests** get `FRESHPROXY_ANON_PER_HOUR` (default 5) free checks per hour per IP; accounts are unlimited.
+- Set `FRESHPROXY_SECURE_COOKIE=1` behind HTTPS. On hosts with an ephemeral disk (e.g. Render free tier) the database resets on redeploy.
+- Redesigned UI: landing page, score ring, claim filters, History and Developers tabs, light/dark theme.
