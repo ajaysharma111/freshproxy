@@ -13,8 +13,12 @@ class Config:
         self.tavily_url = env("TAVILY_URL", "https://api.tavily.com/search")
         self.bifrost_url = env("BIFROST_URL", "http://localhost:8080").rstrip("/")
         self.bifrost_key = env("BIFROST_API_KEY")
-        # Bifrost addresses models as "<provider>/<model>". The first is primary, the rest are client-side fallbacks.
-        self.models = [m.strip() for m in env("BIFROST_MODELS", env("BIFROST_MODEL", "openai/gpt-4o-mini")).split(",") if m.strip()]
+        # Bifrost model IDs use provider/model. Gemini Flash is the default;
+        # comma-separated alternatives are tried in order if the primary fails.
+        model_list = env("BIFROST_MODELS", env("BIFROST_MODEL", "gemini/gemini-2.5-flash"))
+        self.models = [m.strip() for m in model_list.split(",") if m.strip()]
+        if not self.models:
+            self.models = ["gemini/gemini-2.5-flash"]
         self.mock = env("FRESHPROXY_MOCK", "0").lower() in ("1", "true", "yes")
         self.port = int(env("PORT", env("FRESHPROXY_PORT", "8787")))
         self.host = env("HOST", "127.0.0.1")
